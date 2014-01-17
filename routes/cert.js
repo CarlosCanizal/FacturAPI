@@ -1,12 +1,18 @@
 exports.upload = function(req, res){
-  if (req.files.cert){
+  var types = {
+    'cer': 'application/x-x509-ca-cert',
+    'pem': 'application/x-x509-ca-cert',
+    'key': 'application/x-iwork-keynote-sffkey'
+  };
+
+  if (req.files.cert && req.files.cert.type == types.pem){
     var cert = req.files.cert.path;
     var newPath = "certificados/demo.cer";
     uploadFile(cert, newPath, function(response){
       res.json(response.code, response.message);
     });
   }else{
-    res.json(400,{'error': "CERT file is required" });
+    res.json(400,{'error': "PEM file is required." });
   }
 };
 
@@ -20,7 +26,7 @@ function uploadFile(pathFile, newPath, callback){
         response.code = 500;
         response.message = err;
       }
-      
+
       if (callback && typeof(callback) === "function")
         callback(response);
     });

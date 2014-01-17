@@ -25,6 +25,7 @@ module.exports = {
     } catch (_error) {
       err = _error;
       return {
+        code: 500,
         status: false,
         error: err
       };
@@ -34,15 +35,23 @@ module.exports = {
     } catch (_error) {
       error = _error;
       return {
+        code: 400,
         status: false,
         error: error
       };
     }
     is_valid = xml_string.validate(xsd_string);
+    if (is_valid) {
+      return {
+        code: 200,
+        status: true,
+        xml: xml_string
+      };
+    }
     return {
-      status: is_valid,
-      error: [],
-      xml: xml_string
+      code: 300,
+      status: false,
+      error: 'Invalid xml, not schema structure'
     };
   },
   get_cadena_original: function(xml) {
@@ -53,6 +62,7 @@ module.exports = {
     } catch (_error) {
       err = _error;
       return {
+        code: 500,
         status: false,
         error: err
       };
@@ -60,6 +70,7 @@ module.exports = {
     params = [];
     transformedString = xslt.transform(cadena_original, factura, params);
     return {
+      code: 200,
       status: true,
       cadena_original: transformedString,
       error: []
@@ -71,6 +82,7 @@ module.exports = {
     shasum.update(cadena_original, 'utf8');
     digest = shasum.digest('hex');
     return {
+      code: 200,
       status: true,
       digest: digest
     };
@@ -86,31 +98,31 @@ module.exports = {
     sign = crypto.createSign('RSA-SHA256');
     sign.update(digest);
     signature = sign.sign(key, 'base64');
+    if (signature) {
+      return {
+        code: 200,
+        status: true,
+        signature: signature
+      };
+    }
     return {
-      status: true,
-      signature: signature
+      code: 409,
+      status: false,
+      error: 'Error signing xml, check your PEM file.'
     };
   },
   sign_cfdi: function(xml, certificado) {
     var cfdi, digest, result, signature;
     cfdi = this.validate_schema(xml);
     if (!cfdi.status) {
-      return {
-        status: false,
-        errors: ['Invalid xml, not schema structure']
-      };
+      return cfdi;
     }
     result = this.get_cadena_original(cfdi.xml);
     if (!result.status) {
-      return {
-        status: false
-      };
+      return result;
     }
     digest = this.get_digest(result.cadena_original);
     signature = this.sign_digest(certificado, digest.digest);
-    return {
-      status: true,
-      signature: signature
-    };
+    return signature;
   }
 };

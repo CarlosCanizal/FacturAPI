@@ -14,31 +14,32 @@ module.exports =
     try 
       xsd_string = x.parseXmlString xsd.data
     catch err 
-      return {status: false, error: err}
+      return {code:500,status: false, error: err}
 
     try
       xml_string = x.parseXmlString xml.data
     catch error
-      return {status: false, error: error}
+      return {code:400,status: false, error: error}
 
-    is_valid = xml_string.validate xsd_string 
-    return {status: is_valid, error: [], xml: xml_string}
+    is_valid = xml_string.validate xsd_string
+    return {code:200 ,status: true, xml: xml_string} if is_valid
+    return {code:300 ,status: false, error: 'Invalid xml, not schema structure'} 
   ,
   get_cadena_original : (xml) ->
     factura = xslt.readXmlString xml
     try
       cadena_original = xslt.readXsltFile('schemas/cadenaoriginal_3_2.xslt')
     catch err
-      return {status: false, error: err}
+      return {code:500, status: false, error: err}
     params = [];
     transformedString = xslt.transform(cadena_original, factura, params)
-    return {status: true, cadena_original: transformedString, error: [] }
+    return {code:200, status: true, cadena_original: transformedString, error: [] }
   ,
   get_digest : (cadena_original) ->
     shasum = crypto.createHash 'sha1'
     shasum.update(cadena_original, 'utf8')
     digest = shasum.digest 'hex'
-    return {status: true, digest: digest}
+    return {code:200 , status: true, digest: digest}
   ,
   sign_digest : (certificado, digest) ->
     pem = fs.read_file_sync(certificado);
@@ -48,16 +49,17 @@ module.exports =
     sign = crypto.createSign 'RSA-SHA256'
     sign.update digest
     signature = sign.sign(key, 'base64')
-    return {status: true, signature: signature}
+    return {code:200,status: true, signature: signature} if signature
+    return {code:409,status: false, error: 'Error signing xml, check your PEM file.'}
   ,
   sign_cfdi : (xml, certificado) ->
-    cfdi = this.validate_schema xml
-    return {status: false, errors: ['Invalid xml, not schema structure']} unless cfdi.status
+    cfdi = @.validate_schema xml
+    #return {code:cfdi.code, status: false, errors: ['Invalid xml, not schema structure']} unless cfdi.status
+    return cfdi unless cfdi.status
 
     result = @.get_cadena_original cfdi.xml
-    return {status: false} unless result.status
+    return result unless result.status
 
     digest = @.get_digest result.cadena_original
     signature = @.sign_digest(certificado, digest.digest)
-
-    return {status: true, signature : signature};
+    return signature
