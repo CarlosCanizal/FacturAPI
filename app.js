@@ -7,6 +7,7 @@ var express = require('express');
 var routes = require('./routes');
 var user = require('./routes/user');
 var signature = require('./routes/signature');
+var cert = require('./routes/cert');
 Sign = require('./sign.js');
 var http = require('http');
 var path = require('path');
@@ -44,6 +45,7 @@ if ('development' == app.get('env')) {
 app.get('/', routes.index);
 app.get('/users', user.list);
 app.post('/signatures', signature.signature);
+app.post('/certs', cert.upload);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
