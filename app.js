@@ -6,12 +6,15 @@
 var express = require('express');
 var routes = require('./routes');
 var user = require('./routes/user');
+var company = require('./routes/company');
 var signature = require('./routes/signature');
 var cert = require('./routes/cert');
-Sign = require('./sign.js');
 var http = require('http');
 var path = require('path');
+
 Fs = require('fs');
+Sign = require('./sign.js');
+ParseApp = require('./parse.js');
 
 var app = express();
 
@@ -46,6 +49,10 @@ app.get('/', routes.index);
 app.get('/users', user.list);
 app.post('/signatures', signature.signature);
 app.post('/certs', cert.upload);
+app.post('/signup', user.signup);
+app.post('/login', user.login);
+app.post('/companies/new', company.newCompany);
+app.put('/certificate', company.certificate);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
